@@ -24,3 +24,4 @@ app.include_router(users.router)
 # python -m venv venv
 # .\venv\Scripts\Activate
 # pip install -r requirements.txt
+# pip freeze > requirements.txt    this lists all the installed packages

@@ -28,7 +28,6 @@ class TransactionStatusEnum(enum.Enum):
 class User(Base, TimestampMixin):
     __tablename__ = "users"
 
-    id = Column(String(50),primary_key=True, default=lambda: uuid4().hex)
     phone_number = Column(String(30), primary_key=True, index=True)
     full_name = Column(String(100), nullable=False)
     nin = Column(String(100), nullable=True)
@@ -39,7 +38,7 @@ class User(Base, TimestampMixin):
     loan_limit = Column(Float, nullable=True, default=0)
     verified = Column(Boolean, nullable=True, default=False)
     role = Column(String(100), nullable=False, default="user")
-    is_active = Column(Boolean, default=True, nullable=False)
+    is_active = Column(Boolean,nullable=False, default=True)
     gender = Column(String(100), nullable=True)
     dob = Column(Date, nullable=True)
     

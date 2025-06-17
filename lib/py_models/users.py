@@ -37,13 +37,14 @@ class UserModel(BaseModel):
     dob: Optional[datetime]
     role: Optional[str]
     gender: Optional[str]
+    password: Optional[str]
     is_active: Optional[bool]
 
+# Replaces orm_mode for ORM compatibility
     model_config = {
         "from_attributes": True
     }
-    class Config:
-        orm_mode = True
+
 
 
 # MODEL TO UPDATE USER
@@ -64,6 +65,7 @@ class ChangePassword(BaseModel):
 # RESET PASSWORD
 class ResetPassword(BaseModel):
     new_password: str
+    phone_number: str
     
 
 class AuthUser(BaseModel):
@@ -71,4 +73,5 @@ class AuthUser(BaseModel):
     role: str
     
 
-
+class SuspendUser(BaseModel):
+    phone_number: str

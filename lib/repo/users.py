@@ -1,0 +1,154 @@
+from datetime import timedelta,datetime
+from fastapi import HTTPException, status
+from sqlalchemy.orm import Session
+from repo import auth
+from database.tables import User
+from utils.helpers import formatPhoneNumber,tz
+from py_models.users import Login,Signup,UserModel,SuspendUser,ChangePassword,ResetPassword,UserUpdate
+
+# LOGIN USER
+def login_user(db:Session,data:Login):
+    phone_number= formatPhoneNumber(data.phone_number)
+    if not phone_number:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Invalid phone number')
+    data.phone_number=phone_number
+    user= db.query(User).filter(User.phone_number==phone_number).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found, Please create account")
+    user=auth.authenticate_user(db=db,user=data)
+    access_token =auth.create_access_token(user,timedelta(hours=2))
+    return {'access_token':access_token, "token_type":'bear'}
+    
+# SIGN UP USER
+def signup_user(db:Session,data:Signup):
+    phone_number= formatPhoneNumber(data.phone_number)
+    if not phone_number:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Correct phone number is required")
+    data.phone_number = phone_number
+    if db.query(User).filter(User.phone_number==phone_number).first():
+         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Phone number already registered")
+    
+    hashed_password = auth.has_password(data.password)
+    user = User(phone_number=phone_number,password=hashed_password,full_name=data.full_name)
+    try:
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        return {"message":"User created Successfully","status":200}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to create User:{e}")
+
+# GET USER DATA
+def get_user_data( db: Session,user:UserModel,phone_number: str):
+    phoneNumber= formatPhoneNumber(phone_number)
+    if not user:
+        raise HTTPException(status_code = status.HTTP_401_UNAUTHORIZED, detail='Authentication Failed')
+    try:
+        user_db = db.query(User).filter(User.phone_number == phoneNumber).first()
+        if not user_db:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        return UserModel.model_validate(user_db)
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error retrieving user data: {e}")
+
+# SUSPEND USER
+def suspend_user(data:SuspendUser,db:Session,user:UserModel):
+    phone_number = formatPhoneNumber(data.phone_number)
+    if user.role !='admin':
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail='You are not admin to suspend this user')
+    try:
+        user = db.query(User).filter(User.phone_number==phone_number).first()
+        if not user:
+            return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"User {data.phone_number} not found")
+        user.is_active = False
+        user.updated_at = datetime.now(tz)
+        db.commit()
+        return {"message": "User Successfully Suspended", "status": 200}
+    except Exception as e:
+        db.rollback()
+        return HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to suspend user {data.phone_number}: {e}")
+
+
+# CHANGE PASSWORD
+def changePassword(db: Session, user:UserModel, data:ChangePassword):
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    try:
+        # Verify old password
+        if not auth.verify_password(data.old_password, user.password):
+             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Old password is incorrect")
+
+        # Hash the new password
+        hashed_password = auth.has_password(data.new_password)
+        user.password = hashed_password
+        db.commit()
+        db.refresh(user)
+
+        return {"message": "Password changed successfully", "status": 200}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Could not change password")
+    
+# RESET PASSWORD
+def reset_password(db: Session, data:ResetPassword):
+    try:
+        phone_number = formatPhoneNumber(data.phone_number)
+        if phone_number is None:
+            return {"message": "Invalid phone number", "status": 400}
+        # Check if user exists
+        user = db.query(User).filter(User.phone_number == phone_number).first()
+        if not user:
+            return {"message": "User does not exist", "status": 404}
+        # Hash the new password
+        hashed_password = auth.has_password(data.new_password)   
+        # Update user's password
+        user.password = hashed_password
+        db.commit()
+        db.refresh(user)
+        return {"message": "Password reset successfully", "status": 200}
+            
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Password could not be reset {e}")
+
+
+# GETTING USERS
+def get_users(db: Session,user:UserModel, skip: int, limit: int):
+    if not user.role=='admin':
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication Failed")
+    try:
+        return db.query(User).offset(skip).limit(limit).all()
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"ERROR GETTING users: {e}")
+    
+
+# UPDATE USER
+def update_user(db: Session, user:UserModel, phone_number: str, data: UserUpdate):
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication Failed")
+    try:
+        user_db = db.query(User).filter(user.phone_number == phone_number).first()
+        if user_db:
+            # only update provided values and leave the rest untouched
+            for key, value in data.model_dump(exclude_unset=True).items():
+                setattr(user_db, key, value)
+            db.commit()
+        return {"message": "User updated successfully", "status": 200}
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"ERROR IN UPDATING User: {e}")
+
+# delete user
+def delete_user(db: Session, user:UserModel, phone_number: str):
+    if not user.role=="admin":
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication Failed")
+    try:
+        user_db = db.query(User).filter(User.phone_number == phone_number).first()
+        if user_db:
+            db.delete(user_db)
+            db.commit()
+        return {"message": "User deleted successfully", "status": 200}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"ERROR IN DELETING USER: {e}")
