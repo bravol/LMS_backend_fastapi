@@ -3,8 +3,8 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from lib.repo import auth
 from lib.database.tables import User
-from lib.utils.helpers import formatPhoneNumber,tz
-from lib.py_models.users import Login,Signup,UserModel,SuspendUser,ChangePassword,ResetPassword,UserUpdate
+from lib.utils.helpers import formatPhoneNumber
+from lib.py_models.users import Login,Signup,UserModel,ChangePassword,ResetPassword,UserUpdate
 
 # LOGIN USER
 def login_user(db:Session,data:Login):
@@ -16,8 +16,8 @@ def login_user(db:Session,data:Login):
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found, Please create account")
     user=auth.authenticate_user(db=db,user=data)
-    access_token =auth.create_access_token(user,timedelta(hours=2))
-    return {'access_token':access_token, "token_type":'bear'}
+    access_token =auth.create_access_token(user,timedelta(hours=6))
+    return {"access_token":access_token, "token_type":"bearer"}
     
 # SIGN UP USER
 def signup_user(db:Session,data:Signup):
@@ -28,7 +28,7 @@ def signup_user(db:Session,data:Signup):
     if db.query(User).filter(User.phone_number==phone_number).first():
          raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Phone number already registered")
     
-    hashed_password = auth.has_password(data.password)
+    hashed_password = auth.hash_password(data.password)
     user = User(phone_number=phone_number,password=hashed_password,full_name=data.full_name)
     try:
         db.add(user)
@@ -52,23 +52,6 @@ def get_user_data( db: Session,user:UserModel,phone_number: str):
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error retrieving user data: {e}")
 
-# SUSPEND USER
-def suspend_user(db:Session,user:UserModel,data:SuspendUser):
-    phone_number = formatPhoneNumber(data.phone_number)
-    if user.role !='admin':
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail='You are not admin to suspend this user')
-    try:
-        user = db.query(User).filter(User.phone_number==phone_number).first()
-        if not user:
-            return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"User {data.phone_number} not found")
-        user.is_active = False
-        user.updated_at = datetime.now(tz)
-        db.commit()
-        return {"message": "User Successfully Suspended", "status": 200}
-    except Exception as e:
-        db.rollback()
-        return HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to suspend user {data.phone_number}: {e}")
-
 
 # CHANGE PASSWORD
 def changePassword(db: Session, user:UserModel, data:ChangePassword):
@@ -80,7 +63,7 @@ def changePassword(db: Session, user:UserModel, data:ChangePassword):
              raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Old password is incorrect")
 
         # Hash the new password
-        hashed_password = auth.has_password(data.new_password)
+        hashed_password = auth.hash_password(data.new_password)
         user.password = hashed_password
         db.commit()
         db.refresh(user)
@@ -101,7 +84,7 @@ def reset_password(db: Session, data:ResetPassword):
         if not user:
             return {"message": "User does not exist", "status": 404}
         # Hash the new password
-        hashed_password = auth.has_password(data.new_password)   
+        hashed_password = auth.hash_password(data.new_password)   
         # Update user's password
         user.password = hashed_password
         db.commit()
@@ -114,7 +97,7 @@ def reset_password(db: Session, data:ResetPassword):
 
 # GETTING USERS
 def get_users(db: Session,user:UserModel, skip: int, limit: int):
-    if not user.role=='admin':
+    if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication Failed")
     try:
         return db.query(User).offset(skip).limit(limit).all()
@@ -124,25 +107,25 @@ def get_users(db: Session,user:UserModel, skip: int, limit: int):
 
 # UPDATE USER
 def update_user(db: Session, user:UserModel, phone_number: str, data: UserUpdate):
-    if not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication Failed")
     try:
-        user_db = db.query(User).filter(user.phone_number == phone_number).first()
-        if user_db:
-            # only update provided values and leave the rest untouched
-            for key, value in data.model_dump(exclude_unset=True).items():
-                setattr(user_db, key, value)
-            db.commit()
-        return {"message": "User updated successfully", "status": 200}
+        phone_number = formatPhoneNumber(phone_number)
+        user = get_user_data(db,user,phone_number)
+        if not user:
+            return {"message": "User not found", "status": 404}
 
+        for key, value in data.model_dump(exclude_unset=True).items():
+            setattr(user, key, value)
+            
+        db.commit()
+        return {"message": "User updated successfully", "status": 200}
     except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"ERROR IN UPDATING User: {e}")
+        raise HTTPException(status_code=400, detail="Could not update user")
+    
 
 # delete user
 def delete_user(db: Session, user:UserModel, phone_number: str):
-    if not user.role=="admin":
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication Failed")
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="You are not an admin to delete this user")
     try:
         user_db = db.query(User).filter(User.phone_number == phone_number).first()
         if user_db:
@@ -151,4 +134,4 @@ def delete_user(db: Session, user:UserModel, phone_number: str):
         return {"message": "User deleted successfully", "status": 200}
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"ERROR IN DELETING USER: {e}")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=f"ERROR IN DELETING USER: {e}")

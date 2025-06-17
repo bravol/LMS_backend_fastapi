@@ -28,7 +28,6 @@ class UserModel(BaseModel):
     phone_number: Optional[str]
     profile_pic: Optional[str]
     email: Optional[str]
-    last_token: Optional[str]
     loan_balance: Optional[float]
     loan_limit: Optional[float]
     verified: Optional[bool]
@@ -53,8 +52,6 @@ class UserUpdate(BaseModel):
     nin: Optional[str]
     profile_pic: Optional[str]
     email: Optional[str]
-    last_token: Optional[str]
-
 
 # CHANGE PASSWORD MODEL
 class ChangePassword(BaseModel):

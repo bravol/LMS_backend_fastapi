@@ -59,7 +59,7 @@ def authenticate_request(credentials: HTTPAuthorizationCredentials=Depends(secur
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Access denied, Invalid token received")
 
 # ENCRYPTING PASSWORD
-def has_password(password:str):
+def hash_password(password:str):
     return bcrypt_context.hash(password)
 
 # VERIFY PASSWORD

@@ -1,6 +1,6 @@
 from lib.database import tables,database
 from fastapi import FastAPI
-from lib.routers import users
+from lib.routers import users,auth
 
 app= FastAPI()
 
@@ -12,7 +12,9 @@ tables.Base.metadata.create_all(bind=database.engine)
 def root():
     return{"message":"Hello Loan management system"}
 
+app.include_router(auth.router)
 app.include_router(users.router)
+
 
 # .\fastapi\Scripts\activate
 # pip install fastapi[all] sqlalchemy alembic pymysql
