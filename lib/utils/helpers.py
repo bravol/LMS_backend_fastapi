@@ -1,8 +1,6 @@
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 from fastapi import HTTPException,status
-import base64
-from uuid import uuid4
 
 
 # SPECIFY THE TIME ZONE
@@ -60,6 +58,3 @@ def formatWithCommas(input_value):
         return formatted_number
     except ValueError:
         return "Invalid input"
-
-def generateUniqueId(length=20):
-    return base64.urlsafe_b64encode(uuid4().bytes).rstrip(b'=').decode('ascii')[:length]

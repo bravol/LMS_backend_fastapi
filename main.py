@@ -4,6 +4,7 @@ from lib.routers import users
 
 app= FastAPI()
 
+# creating tables in database
 tables.Base.metadata.create_all(bind=database.engine)
 
 

@@ -1,10 +1,10 @@
 from datetime import timedelta,datetime
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
-from repo import auth
-from database.tables import User
-from utils.helpers import formatPhoneNumber,tz
-from py_models.users import Login,Signup,UserModel,SuspendUser,ChangePassword,ResetPassword,UserUpdate
+from lib.repo import auth
+from lib.database.tables import User
+from lib.utils.helpers import formatPhoneNumber,tz
+from lib.py_models.users import Login,Signup,UserModel,SuspendUser,ChangePassword,ResetPassword,UserUpdate
 
 # LOGIN USER
 def login_user(db:Session,data:Login):
@@ -53,7 +53,7 @@ def get_user_data( db: Session,user:UserModel,phone_number: str):
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error retrieving user data: {e}")
 
 # SUSPEND USER
-def suspend_user(data:SuspendUser,db:Session,user:UserModel):
+def suspend_user(db:Session,user:UserModel,data:SuspendUser):
     phone_number = formatPhoneNumber(data.phone_number)
     if user.role !='admin':
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail='You are not admin to suspend this user')

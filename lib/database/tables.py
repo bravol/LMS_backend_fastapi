@@ -1,9 +1,8 @@
 from sqlalchemy import Boolean, Column, DateTime, Date, Enum as SQLEnum, ForeignKey, Integer, String, Float, UniqueConstraint, func
 from sqlalchemy.orm import relationship
 import enum 
-from database import Base
+from lib.database.database import Base
 from uuid import uuid4
-from utils.helpers import generateUniqueId
 
 # TIMESTAMP MIXIN TO AVOID REPITION OF DATE
 class TimestampMixin:
@@ -104,7 +103,7 @@ class LoanPlan(Base, TimestampMixin):
 class FAQ(Base, TimestampMixin):
     __tablename__ = "faqs"
 
-    id = Column(String(30), primary_key=True, default=generateUniqueId, nullable=False, index=True)
+    id = Column(String(50),primary_key=True, default=lambda: uuid4().hex)
     question = Column(String(500), index=True, nullable=False)
     answer = Column(String(1000), nullable=True)
 
