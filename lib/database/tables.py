@@ -30,7 +30,7 @@ class User(Base, TimestampMixin):
 
     id = Column(String(50),primary_key=True, default=lambda: uuid4().hex)
     phone_number = Column(String(30), primary_key=True, index=True)
-    full_name = Column(String(100), nullable=True)
+    full_name = Column(String(100), nullable=False)
     nin = Column(String(100), nullable=True)
     profile_pic = Column(String(100), nullable=True)
     email = Column(String(100), nullable=True)

@@ -12,6 +12,7 @@ class Login(BaseModel):
 class Signup(BaseModel):
     phone_number: str
     password: str
+    full_name:str
 
 
 # RESET PASSWORD  
@@ -30,7 +31,6 @@ class UserModel(BaseModel):
     last_token: Optional[str]
     loan_balance: Optional[float]
     loan_limit: Optional[float]
-    payback_balance: Optional[float]
     verified: Optional[bool]
     created_at: Optional[datetime]
     updated_at: Optional[datetime]

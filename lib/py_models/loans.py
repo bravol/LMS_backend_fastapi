@@ -13,10 +13,8 @@ class LoanBase(BaseModel):
     is_cleared: bool
     loan_balance: float
     loan_period: int
-    meter_number: str
     payback_amount: float
     phone_number: str
-    rate: Optional[float] = None
     updated_at: datetime
 
 class LoanCreate(LoanBase):
