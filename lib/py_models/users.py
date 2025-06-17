@@ -34,9 +34,14 @@ class UserModel(BaseModel):
     verified: Optional[bool]
     created_at: Optional[datetime]
     updated_at: Optional[datetime]
+    dob: Optional[datetime]
     role: Optional[str]
+    gender: Optional[str]
     is_active: Optional[bool]
 
+    model_config = {
+        "from_attributes": True
+    }
     class Config:
         orm_mode = True
 
