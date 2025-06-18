@@ -2,7 +2,7 @@ from lib.database import tables,database
 from fastapi import FastAPI
 from lib.routers import users,auth
 
-app= FastAPI()
+app = FastAPI()
 
 # creating tables in database
 tables.Base.metadata.create_all(bind=database.engine)

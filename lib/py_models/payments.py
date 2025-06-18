@@ -44,9 +44,6 @@ class TransactionModel(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        orm_mode = True
-
 
 class OverpaymentBase(BaseModel):
     phone_number: Optional[str]
@@ -72,10 +69,6 @@ class OverpaymentResponse(OverpaymentBase):
     refunded: bool
     created_at: datetime
     updated_at: datetime
-
-    class Config:
-        orm_mode = True
-
 
 # CREATE PAYMENT METHOD
 class PaymentMethodCreate(BaseModel):

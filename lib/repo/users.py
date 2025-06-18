@@ -56,22 +56,25 @@ def get_user_data( db: Session,user:UserModel,phone_number: str):
 # CHANGE PASSWORD
 def changePassword(db: Session, user:UserModel, data:ChangePassword):
     if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Authentication failed')
+    phone_number= formatPhoneNumber(data.phone_number)
+    user_db= db.query(User).filter(User.phone_number == phone_number).first()
+    if not user_db:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     try:
         # Verify old password
-        if not auth.verify_password(data.old_password, user.password):
+        if not auth.verify_password(data.old_password, user_db.password):
              raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Old password is incorrect")
-
         # Hash the new password
         hashed_password = auth.hash_password(data.new_password)
-        user.password = hashed_password
+        user_db.password = hashed_password
         db.commit()
-        db.refresh(user)
+        db.refresh(user_db)
 
         return {"message": "Password changed successfully", "status": 200}
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=400, detail="Could not change password")
+        raise HTTPException(status_code=400, detail=f"Could not change password {e}")
     
 # RESET PASSWORD
 def reset_password(db: Session, data:ResetPassword):
@@ -108,8 +111,8 @@ def get_users(db: Session,user:UserModel, skip: int, limit: int):
 # UPDATE USER
 def update_user(db: Session, user:UserModel, phone_number: str, data: UserUpdate):
     try:
-        phone_number = formatPhoneNumber(phone_number)
-        user = get_user_data(db,user,phone_number)
+        phoneNumber = formatPhoneNumber(phone_number)
+        user = db.query(User).filter(User.phone_number == phoneNumber).first()
         if not user:
             return {"message": "User not found", "status": 404}
 
@@ -127,7 +130,8 @@ def delete_user(db: Session, user:UserModel, phone_number: str):
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="You are not an admin to delete this user")
     try:
-        user_db = db.query(User).filter(User.phone_number == phone_number).first()
+        phoneNumber=formatPhoneNumber(phone_number)
+        user_db = db.query(User).filter(User.phone_number == phoneNumber).first()
         if user_db:
             db.delete(user_db)
             db.commit()
