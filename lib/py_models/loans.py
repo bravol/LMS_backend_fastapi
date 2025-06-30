@@ -7,18 +7,19 @@ from typing import Optional
 # LOAN MODELS
 class LoanBase(BaseModel):
     amount: float
-    amount_paid: float
     created_at: datetime
     due_date: datetime
     is_cleared: bool
     loan_balance: float
-    loan_period: int
+    loan_plan_id: str
     payback_amount: float
     phone_number: str
     updated_at: datetime
+    status: str
 
-class LoanCreate(LoanBase):
-    pass
+class LoanCreate(BaseModel):
+    amount:float
+    loan_plan_id:str
 
 
 class LoanUpdate(BaseModel):

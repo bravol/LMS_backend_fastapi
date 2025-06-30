@@ -2,11 +2,52 @@ from sqlalchemy.orm import Session
 from fastapi import HTTPException,status
 from lib.py_models.loans import LoanCreate
 from lib.py_models.users import UserModel
-from lib.database.tables import Loan, LoanStatusEnum
+from lib.database.tables import Loan, LoanStatusEnum, LoanPlan
 from lib.utils.helpers import formatPhoneNumber
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # A METHOD TO REQUEST LOAN
+def requestLoan(db: Session, user: UserModel, data: LoanCreate):
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication Failed")
+
+    previous_loans = db.query(Loan).filter(Loan.phone_number == user.phone_number).all()
+
+    if not previous_loans:
+        if data.amount > 5000:
+            return {"message":"As a first-time borrower, you can only request up to 5000","status":403}
+    else:
+        unpaid_loans = [loan for loan in previous_loans if not loan.is_cleared]
+        if unpaid_loans:
+            return {"message":"You still have unpaid loans. Please clear them before requesting another", "status":403}
+
+    charges = data.amount * 0.01
+    paybackAmount = data.amount + charges
+    loan_plan = db.query(LoanPlan).filter(LoanPlan.id == data.loan_plan_id).first()
+
+    if not loan_plan:
+        raise HTTPException(status_code=404, detail="Loan plan not found")
+    due_date = datetime.now() + timedelta(days=loan_plan.duration)
+
+    new_loan = Loan(
+        amount=data.amount,
+        loan_plan_id=data.loan_plan_id,
+        charges=charges,
+        loan_balance=paybackAmount,
+        payback_amount=paybackAmount,
+        phone_number=user.phone_number,
+        due_date=due_date,
+        status=LoanStatusEnum.approved
+    )
+
+    db.add(new_loan)
+    db.commit()
+    db.refresh(new_loan)
+    return {"message": "Loan request submitted successfully", "status": 200}
+
+
+    
+
 
 
 #  A METHOD TO REPAY A LOAN

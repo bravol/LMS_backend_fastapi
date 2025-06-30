@@ -54,6 +54,7 @@ class Loan(Base, TimestampMixin):
     amount = Column(Float, nullable=False)
     charges = Column(Float, nullable=True)
     payback_amount = Column(Float, nullable=False)
+    is_cleared=  Column(Boolean, nullable=True, default=False)
     penalty = Column(Float, nullable=True, default=0)
     loan_balance = Column(Float, nullable=False)
     loan_plan_id = Column(String(30), ForeignKey("loan_plans.id", ondelete='SET NULL'), nullable=True)
