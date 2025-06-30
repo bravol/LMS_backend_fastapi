@@ -52,6 +52,7 @@ class Loan(Base, TimestampMixin):
     id = Column(String(50),primary_key=True, default=lambda: uuid4().hex)
     phone_number = Column(String(30), ForeignKey("users.phone_number", ondelete='SET NULL'), nullable=True)
     amount = Column(Float, nullable=False)
+    amount_paid = Column(Float, nullable=True, default=0)
     charges = Column(Float, nullable=True)
     payback_amount = Column(Float, nullable=False)
     is_cleared=  Column(Boolean, nullable=True, default=False)

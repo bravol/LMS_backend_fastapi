@@ -1,8 +1,8 @@
 from sqlalchemy.orm import Session
 from fastapi import HTTPException,status
-from lib.py_models.loans import LoanCreate
+from lib.py_models.loans import LoanCreate, LoanRepay
 from lib.py_models.users import UserModel
-from lib.database.tables import Loan, LoanStatusEnum, LoanPlan
+from lib.database.tables import Loan, LoanStatusEnum, LoanPlan,User
 from lib.utils.helpers import formatPhoneNumber
 from datetime import datetime, timedelta
 
@@ -46,11 +46,47 @@ def requestLoan(db: Session, user: UserModel, data: LoanCreate):
     return {"message": "Loan request submitted successfully", "status": 200}
 
 
-    
-
-
 
 #  A METHOD TO REPAY A LOAN
+def repayLoan(db: Session, user: UserModel, data:LoanRepay):
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication Failed")
+    loan = db.query(Loan).filter(Loan.id == data.loan_id,Loan.phone_number == user.phone_number).first()
+    if not loan:
+        raise HTTPException(status_code=404, detail="Loan not found")
+
+    if loan.is_cleared:
+        raise HTTPException(status_code=400, detail="Loan is already fully repaid")
+
+    if data.repayment_amount <= 0:
+        raise HTTPException(status_code=400, detail="Repayment amount must be greater than zero")
+
+    if data.repayment_amount > loan.loan_balance:
+        raise HTTPException(status_code=400, detail="Repayment amount exceeds remaining loan balance")
+
+    #Update loan fields
+    loan.loan_balance -= data.repayment_amount
+    loan.amount_paid = (loan.amount_paid or 0) + data.repayment_amount
+    loan.updated_at = datetime.now()
+    loan.last_repayment_date = datetime.now()
+
+    # ✅ If fully repaid, clear loan and reward user
+    if loan.loan_balance <= 0:
+        loan.loan_balance = 0
+        loan.is_cleared = True
+        loan.status = LoanStatusEnum.cleared
+        #Increase user loan limit by 5000
+        user.loan_limit += 5000
+
+    active_loans = db.query(Loan).filter(Loan.phone_number == user.phone_number,Loan.is_cleared == False).all()
+    user.loan_balance = sum(loan.loan_balance for loan in active_loans)
+
+    db.commit()
+    db.refresh(loan)
+    db.refresh(user)
+
+    return {"message": f"Repayment of {data.repayment_amount} received successfully.","status": 200}
+
 
 
 
@@ -84,7 +120,7 @@ def get_loan_details(db:Session,user:UserModel,loan_id:str):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"failed to loan details: {e}")
 
 # UPDATING LOAN
-def updteLoan(db: Session, user:UserModel,loan_id: str, updates: dict):
+def updateLoan(db: Session, user:UserModel,loan_id: str, updates: dict):
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication Failed")
     try:

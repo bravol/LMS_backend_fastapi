@@ -22,30 +22,9 @@ class LoanCreate(BaseModel):
     loan_plan_id:str
 
 
-class LoanUpdate(BaseModel):
-    amount_paid: Optional[float]
-    is_cleared: Optional[bool]
-    loan_balance: Optional[float]
-    updated_at: Optional[datetime]
-
-
-
-# LOAN REPAYMENT request
-class RepayLoanModel(BaseModel):
-    phone_number: str
-    amount: float
+class LoanRepay(BaseModel):
+    repayment_amount: float
     loan_id: str
-    platform: Optional[str] = None
-
-
-# Request Loan Request
-class RequestLoan(BaseModel):
-    meter_number: str
-    amount: float
-    loan_plan_id: str
-    platform: Optional[str] = None
-
-
 
 
 # LOAN PLAN MODELS
