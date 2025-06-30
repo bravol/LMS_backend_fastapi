@@ -10,8 +10,6 @@ class TransactionUpdate(BaseModel):
     amount: float = None
     transaction_type: str = None
     status: str = None
-    units: Optional[float] = None
-    token: Optional[str] = None
 
 
 # request payment
@@ -34,16 +32,22 @@ class RepayLoanModel(BaseModel):
 class TransactionModel(BaseModel):
     id: str 
     phone_number: str
+    user_phone: str
     amount: float
-    transaction_type: str
+    loan_id:str
+    charges:float
     status: str
-    yaka_token: Optional[str]
-    yaka_units: Optional[float]
     payment_method: Optional[str] 
     narration: Optional[str]
     created_at: datetime
     updated_at: datetime
 
+
+class TransactionCreate(BaseModel):
+    phone_number: str
+    amount: float
+    loan_id: str
+    charges: Optional[float] = 0
 
 class OverpaymentBase(BaseModel):
     phone_number: Optional[str]
@@ -70,8 +74,5 @@ class OverpaymentResponse(OverpaymentBase):
     created_at: datetime
     updated_at: datetime
 
-# CREATE PAYMENT METHOD
-class PaymentMethodCreate(BaseModel):
-    value: str
 
 
