@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 from starlette import status
-from lib.py_models.transaction import TransactionUpdate, TransactionModel, TransactionCreate
+from lib.py_models.transaction import TransactionUpdate, TransactionCreate
 from lib.py_models.users import UserModel
 from lib.database.tables import Transaction, TransactionStatusEnum,Loan
 from lib.utils.helpers import formatPhoneNumber, identifyProvider

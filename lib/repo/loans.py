@@ -6,6 +6,13 @@ from lib.database.tables import Loan, LoanStatusEnum
 from lib.utils.helpers import formatPhoneNumber
 from datetime import datetime
 
+# A METHOD TO REQUEST LOAN
+
+
+#  A METHOD TO REPAY A LOAN
+
+
+
 # GETTING LOANS
 def get_loans(db: Session,user:UserModel, skip: int, limit: int):
     if not user:
