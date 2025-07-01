@@ -58,12 +58,10 @@ class Loan(Base, TimestampMixin):
     is_cleared=  Column(Boolean, nullable=True, default=False)
     penalty = Column(Float, nullable=True, default=0)
     loan_balance = Column(Float, nullable=False)
-    loan_plan_id = Column(String(30), ForeignKey("loan_plans.id", ondelete='SET NULL'), nullable=True)
+    loan_plan_id = Column(String(50), ForeignKey("loan_plans.id", ondelete='SET NULL'), nullable=True)
     due_date = Column(DateTime, nullable=False)
     status = Column(SQLEnum(LoanStatusEnum), nullable=False, default=LoanStatusEnum.pending, index=True)
     last_repayment_date = Column(DateTime, nullable=True)
-    narration = Column(String(1000), nullable=True)
-
     loan_plan = relationship("LoanPlan", back_populates="loan", passive_deletes=True)
     user = relationship("User", back_populates="loans", passive_deletes=True)
     transactions = relationship("Transaction", back_populates="loan", passive_deletes=True)

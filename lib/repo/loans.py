@@ -89,7 +89,7 @@ def repayLoan(db: Session, user: UserModel, data:LoanRepay):
 
     db.commit()
     db.refresh(loan)
-    db.refresh(user)
+    db.refresh(logged_in_user)
 
     return {"message": f"Repayment of {data.repayment_amount} received successfully.","status": 200}
 
