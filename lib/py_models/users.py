@@ -39,12 +39,6 @@ class UserModel(BaseModel):
     password: Optional[str]
     is_active: Optional[bool]
 
-# Replaces orm_mode for ORM compatibility
-    model_config = {
-        "from_attributes": True
-    }
-
-
 
 # MODEL TO UPDATE USER
 class UserUpdate(BaseModel):

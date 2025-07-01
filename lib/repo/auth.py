@@ -27,7 +27,7 @@ def authenticate_user(db:Session,user:Login):
 
     if not verify_user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="Invalid phone number or password")
-    return UserModel.model_validate(user_db) 
+    return user_db
 # cleanly returns a validated Pydantic model
 
 # CREATING ACCESS TOKEN
@@ -54,7 +54,7 @@ def authenticate_request(credentials: HTTPAuthorizationCredentials=Depends(secur
 
             if phone_number is None or role is None:
                 raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Access denied,  Could not validaate the user')
-            return {"phone_number":phone_number, 'role':role}
+            return UserModel(phone_number=phone_number, role=role)
     except JWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Access denied, Invalid token received")
 
