@@ -3,7 +3,7 @@ from fastapi import HTTPException
 from starlette import status
 from lib.py_models.transaction import TransactionUpdate, TransactionCreate
 from lib.py_models.users import UserModel
-from lib.database.tables import Transaction, TransactionStatusEnum,Loan
+from lib.database.tables import Transaction, TransactionStatusEnum,Loan, TransactionTypeEnum
 from lib.utils.helpers import formatPhoneNumber, identifyProvider
 
 
@@ -16,37 +16,6 @@ def getTransactions(db: Session, user: UserModel, skip: int, limit: int):
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error in getting all transactions: {e}")
 
-
-# CREATE TRANSACTION
-def createTransaction(db: Session, user:UserModel, transaction: TransactionCreate):
-    phone_number = formatPhoneNumber(transaction.phone_number)
-    provider = identifyProvider(transaction.phone_number)
-    if not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication Failed")
-
-    active_loan = db.query(Loan).filter(Loan.id == transaction.loan_id,Loan.phone_number==phone_number,Loan.status.in_(['pending', 'approved']),Loan.loan_balance > 0).first()
-
-    if not active_loan:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Loan not found")
-
-    try:
-        db_transaction = Transaction(
-            phone_number = phone_number,
-            user_phone = user.phone_number,
-            loan_id = active_loan.id,
-            amount = transaction.amount,
-            charges = transaction.charges or 0,
-            status = TransactionStatusEnum.successful,
-            payment_method = provider,
-            narration = f"Loan transaction for {transaction.amount} has been done"
-        )
-        db.add(db_transaction)
-        db.commit()
-        db.refresh(db_transaction)
-        return {"message": "Transaction created successfully", "status": 200}
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"ERROR IN CREATING TRANSACTION: {e}")
 
 # GET TRANSACTION DETAILS
 def getTransaction(db: Session, user:UserModel, transaction_id: str):

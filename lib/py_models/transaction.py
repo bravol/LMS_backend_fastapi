@@ -31,7 +31,7 @@ class RepayLoanModel(BaseModel):
 # TRANSACTION MODEL
 class TransactionModel(BaseModel):
     id: str 
-    user_phone: str
+    phone_number: str
     amount: float
     loan_id:str
     charges:float
