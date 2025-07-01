@@ -1,6 +1,6 @@
 from lib.database import tables,database
 from fastapi import FastAPI
-from lib.routers import users,auth, loans, loan_plans
+from lib.routers import transactions, users,auth, loans, loan_plans,over_payments
 
 app = FastAPI()
 
@@ -16,6 +16,8 @@ app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(loan_plans.router)
 app.include_router(loans.router)
+app.include_router(transactions.router)
+app.include_router(over_payments.router)
 
 
 

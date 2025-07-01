@@ -65,6 +65,6 @@ def getUserTransactions(db: Session, user: UserModel, phoneNumber: str):
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Authentication Failed')
     try:
-        return db.query(Transaction).filter(Transaction.phone_number == phone_number,Transaction.user_phone == phone_number).all()
+        return db.query(Transaction).filter(Transaction.phone_number == phone_number).all()
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error in getting user transactions: {e}")
