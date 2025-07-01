@@ -142,13 +142,12 @@ def updateLoan(db: Session, user:UserModel,loan_id: str, updates: dict):
         raise HTTPException(status_code=400, detail="Loan could not be updated")
     
 
-    # METHOD TO GET USER UNPAID LOANS
-def getUnpaidLoans(db: Session, user:UserModel, phone_number: str):
+    # GET UNPAID LOANS
+def getUnpaidLoans(db: Session, user:UserModel):
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication Failed")
-    phoneNumber=formatPhoneNumber(phone_number)
     try:
-        return db.query(Loan).filter(Loan.phone_number == phoneNumber,Loan.status.in_([LoanStatusEnum.approved, LoanStatusEnum.overdue, LoanStatusEnum.defaulted])).all()
+        return db.query(Loan).filter(Loan.status.in_([LoanStatusEnum.approved, LoanStatusEnum.overdue, LoanStatusEnum.defaulted])).all()
     except Exception as e:
         return None
 

@@ -1,6 +1,6 @@
 from lib.database import tables,database
 from fastapi import FastAPI
-from lib.routers import users,auth
+from lib.routers import users,auth, loans
 
 app = FastAPI()
 
@@ -14,6 +14,7 @@ def root():
 
 app.include_router(auth.router)
 app.include_router(users.router)
+app.include_router(loans.router)
 
 
 # .\fastapi\Scripts\activate
@@ -28,3 +29,9 @@ app.include_router(users.router)
 # .\venv\Scripts\Activate
 # pip install -r requirements.txt
 # pip freeze > requirements.txt    this lists all the installed packages
+
+
+# Initialize Alembic (once):	alembic init alembic
+# Generate migration:	alembic revision --autogenerate -m "add amount_paid"
+# Apply migration:	alembic upgrade head
+# reverse schema changes: alembic downgrade -1
