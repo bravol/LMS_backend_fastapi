@@ -24,6 +24,7 @@ class TransactionStatusEnum(enum.Enum):
 class TransactionTypeEnum(enum.Enum):
     request_loan = "request Loan"
     repay_loan = "repay loan"
+
     
 # USERS TABLE
 class User(Base, TimestampMixin):
@@ -116,12 +117,10 @@ class Overpayment(Base, TimestampMixin):
 
     id = Column(String(50),primary_key=True, default=lambda: uuid4().hex)
     phone_number = Column(String(30), ForeignKey("users.phone_number", ondelete='SET NULL'), nullable=True, index=True)
-    loan_id = Column(String(30), ForeignKey("loans.id", ondelete='SET NULL'), nullable=True, index=True)
-    transaction_id = Column(String(30), ForeignKey("transactions.id", ondelete='SET NULL'), nullable=True, index=True)
-    amount = Column(Float, nullable=False)
-    refunded = Column(Boolean, default=False, nullable=False)  
-    note = Column(String(500), nullable=True)  
-    
+    loan_id = Column(String(50), ForeignKey("loans.id", ondelete='SET NULL'), nullable=True, index=True)
+    transaction_id = Column(String(50), ForeignKey("transactions.id", ondelete='SET NULL'), nullable=True, index=True)
+    overpaid_amount = Column(Float, nullable=False)
+    refunded = Column(Boolean, default=False, nullable=False)      
     # Relationships
     user = relationship("User", backref="overpayments", passive_deletes=True)
     loan = relationship("Loan", backref="overpayments", passive_deletes=True)

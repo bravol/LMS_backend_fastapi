@@ -64,11 +64,6 @@ def get_user_loan_balance(db:db_dependency, user:user_dependency, phone_number:s
 def get_user_overdue(db:db_dependency, user:user_dependency, phone_number:str):
     return loans.getUserOverdueAmount(db=db,user=user,phone_number=phone_number)
 
-# GETTING USER PAY BACK AMOUNT
-@router.get("/payback/{phone_number}")
-def get_user_payback(db:db_dependency, user:user_dependency, phone_number:str):
-    return loans.getUserPayBackBalance(db=db,user=user,phone_number=phone_number)
-
 
 # GETTING LOAN DETAILS
 @router.get("/{loan_id}")

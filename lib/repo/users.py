@@ -48,7 +48,7 @@ def get_user_data( db: Session,user:UserModel,phone_number: str):
         user_db = db.query(User).filter(User.phone_number == phoneNumber).first()
         if not user_db:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-        return UserModel.model_validate(user_db)
+        return user_db
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error retrieving user data: {e}")
 
@@ -57,8 +57,7 @@ def get_user_data( db: Session,user:UserModel,phone_number: str):
 def changePassword(db: Session, user:UserModel, data:ChangePassword):
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Authentication failed')
-    phone_number= formatPhoneNumber(data.phone_number)
-    user_db= db.query(User).filter(User.phone_number == phone_number).first()
+    user_db = db.query(User).filter(User.phone_number == user.phone_number).first()
     if not user_db:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     try:

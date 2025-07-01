@@ -51,8 +51,6 @@ class UserUpdate(BaseModel):
 class ChangePassword(BaseModel):
     old_password: str
     new_password: str
-    phone_number: str
-
 
 # RESET PASSWORD
 class ResetPassword(BaseModel):

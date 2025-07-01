@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from fastapi import HTTPException,status
 from lib.py_models.loans import LoanCreate, LoanRepay
 from lib.py_models.users import UserModel
-from lib.database.tables import Loan, LoanStatusEnum, LoanPlan,User, Transaction, TransactionStatusEnum,TransactionTypeEnum
+from lib.database.tables import Loan, LoanStatusEnum, LoanPlan,User, Transaction, TransactionStatusEnum,TransactionTypeEnum,Overpayment
 from lib.utils.helpers import formatPhoneNumber, identifyProvider
 from datetime import datetime, timedelta
 
@@ -12,6 +12,9 @@ def requestLoan(db: Session, user: UserModel, data: LoanCreate):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication Failed")
 
     previous_loans = db.query(Loan).filter(Loan.phone_number == user.phone_number).all()
+
+    if data.amount < 5000:
+        return {"message":"We offer loan that starts from 5000 and above!!", "status":403}
 
     if not previous_loans:
         if data.amount > 5000:
@@ -64,64 +67,81 @@ def requestLoan(db: Session, user: UserModel, data: LoanCreate):
     db.commit()
     db.refresh(new_transaction)
     db.refresh(logged_in_user)
-    return {"message": "Loan request submitted successfully", "status": 200}
+    return {"message": f"You have been successfully given a loan of {data.amount} ", "status": 200}
 
 
 
 #  A METHOD TO REPAY A LOAN
-def repayLoan(db: Session, user: UserModel, data:LoanRepay):
+def repayLoan(db: Session, user: UserModel, data: LoanRepay):
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication Failed")
-    loan = db.query(Loan).filter(Loan.id == data.loan_id,Loan.phone_number == user.phone_number).first()
+
+    loan = db.query(Loan).filter(Loan.id == data.loan_id, Loan.phone_number == user.phone_number).first()
     if not loan:
-        raise HTTPException(status_code=404, detail="Loan not found")
+        return{"message":"Loan not found", "status":404}
 
     if loan.is_cleared:
-        raise HTTPException(status_code=400, detail="Loan is already fully repaid")
+        return {'message':"Loan is already fully repaid", "status":400}
 
-    if data.repayment_amount <= 0:
-        raise HTTPException(status_code=400, detail="Repayment amount must be greater than zero")
+    if data.repayment_amount < 500:
+        return {"message":"Airtel money and MTN mobile money corrections start from 500 and above","status":400}
 
     if data.repayment_amount > loan.loan_balance:
-        raise HTTPException(status_code=400, detail="Repayment amount exceeds remaining loan balance")
+        repayment_amount = loan.loan_balance  # only pay what's needed
+        overpayment_amount = data.repayment_amount - loan.loan_balance
+    else:
+        repayment_amount = data.repayment_amount
+        overpayment_amount = 0
 
-    #Update loan fields
-    loan.loan_balance -= data.repayment_amount
-    loan.amount_paid = (loan.amount_paid or 0) + data.repayment_amount
+    # Update loan fields
+    loan.loan_balance -= repayment_amount
+    loan.amount_paid = (loan.amount_paid or 0) + repayment_amount
     loan.updated_at = datetime.now()
     loan.last_repayment_date = datetime.now()
+    logged_in_user = db.query(User).filter(User.phone_number == user.phone_number).first()
 
-    #If fully repaid, clear loan and reward user
     if loan.loan_balance <= 0:
         loan.loan_balance = 0
         loan.is_cleared = True
         loan.status = LoanStatusEnum.cleared
-        #Increase user loan limit by 5000
-        user.loan_limit += 5000
+        logged_in_user.loan_limit += 5000
 
-    active_loans = db.query(Loan).filter(Loan.phone_number == user.phone_number,Loan.is_cleared == False).all()
-    logged_in_user= db.query(User).filter(User.phone_number == user.phone_number).first()
+    # Update user's total loan balance
+    active_loans = db.query(Loan).filter(Loan.phone_number == user.phone_number, Loan.is_cleared == False).all()
     logged_in_user.loan_balance = sum(loan.loan_balance for loan in active_loans)
 
-    #Create repayment transaction
+    # Create repayment transaction
     payment_method = identifyProvider(user.phone_number)
     repayment_transaction = Transaction(
         phone_number=user.phone_number,
         loan_id=loan.id,
-        amount=data.repayment_amount,
+        amount=repayment_amount,
         charges=0,
         status=TransactionStatusEnum.successful,
         payment_method=payment_method,
         transaction_type=TransactionTypeEnum.repay_loan,
     )
-    
     db.add(repayment_transaction)
+    db.flush()  # So repayment_transaction.id becomes available
+
+    # If there's overpayment, create an overpayment record
+    if overpayment_amount > 0:
+        over_payment = Overpayment(
+            phone_number=user.phone_number,
+            loan_id=loan.id,
+            transaction_id=repayment_transaction.id,
+            overpaid_amount=overpayment_amount 
+        )
+        db.add(over_payment)
+
     db.commit()
     db.refresh(loan)
     db.refresh(repayment_transaction)
+    db.refresh(over_payment)
     db.refresh(logged_in_user)
 
     return {"message": f"Repayment of {data.repayment_amount} received successfully.","status": 200}
+
 
 
 
@@ -203,22 +223,11 @@ def getUserLoanBalance(db: Session, user: UserModel, phone_number: str) -> float
     phoneNumber = formatPhoneNumber(phone_number)
     try:
         loans = db.query(Loan).filter(Loan.phone_number == phoneNumber,Loan.status == LoanStatusEnum.approved).all()
-        loan_balance = sum(loan.amount for loan in loans)
+        loan_balance = sum(loan.loan_balance for loan in loans)
         return loan_balance
     except Exception as e:
         return 0.0
     
-# GETTING USER PAYBACK AMOUNT
-def getUserPayBackBalance(db: Session, user: UserModel, phone_number: str) -> float:
-    if not user:
-        raise HTTPException( status_code=status.HTTP_401_UNAUTHORIZED,detail="Authentication Failed")
-    phoneNumber = formatPhoneNumber(phone_number)
-    try:
-        loans = db.query(Loan).filter(Loan.phone_number == phoneNumber).all()
-        amount = sum(loan.loan_balance for loan in loans)
-        return amount
-    except Exception as e:
-        return 0.0
     
 # GETTING USER PAYBACK AMOUNT
 def getUserOverdueAmount(db: Session, user: UserModel, phone_number: str) -> float:
