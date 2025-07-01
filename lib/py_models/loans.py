@@ -4,19 +4,6 @@ from typing import Optional
 
 
 
-# LOAN MODELS
-class LoanBase(BaseModel):
-    amount: float
-    created_at: datetime
-    due_date: datetime
-    is_cleared: bool
-    loan_balance: float
-    loan_plan_id: str
-    payback_amount: float
-    phone_number: str
-    updated_at: datetime
-    status: str
-
 class LoanCreate(BaseModel):
     amount:float
     loan_plan_id:str
@@ -36,8 +23,6 @@ class LoanPlanCreate(BaseModel):
 class LoanPlanUpdate(BaseModel):
     interest_rate: Optional[float] = None
     duration: Optional[int] = None
-
-
 
 class LoanPlanModel(BaseModel):
     id: int
