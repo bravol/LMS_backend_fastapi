@@ -23,21 +23,21 @@ class ResetPassword(BaseModel):
 
 # USER MODEL
 class UserModel(BaseModel):
-    full_name: Optional[str]
-    nin: Optional[str]
-    phone_number: Optional[str]
-    profile_pic: Optional[str]
-    email: Optional[str]
-    loan_balance: Optional[float]
-    loan_limit: Optional[float]
-    verified: Optional[bool]
-    created_at: Optional[datetime]
-    updated_at: Optional[datetime]
-    dob: Optional[datetime]
-    role: Optional[str]
-    gender: Optional[str]
-    password: Optional[str]
-    is_active: Optional[bool]
+    full_name: Optional[str] = None
+    nin: Optional[str] = None
+    phone_number: Optional[str] = None
+    profile_pic: Optional[str] = None
+    email: Optional[str] = None
+    loan_balance: Optional[float] = None
+    loan_limit: Optional[float] = None
+    verified: Optional[bool] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    dob: Optional[datetime] = None
+    role: Optional[str] = None
+    gender: Optional[str] = None
+    password: Optional[str] = None
+    is_active: Optional[bool] = None
 
 
 # MODEL TO UPDATE USER

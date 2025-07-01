@@ -1,6 +1,6 @@
 from lib.database import tables,database
 from fastapi import FastAPI
-from lib.routers import users,auth, loans
+from lib.routers import users,auth, loans, loan_plans
 
 app = FastAPI()
 
@@ -14,7 +14,9 @@ def root():
 
 app.include_router(auth.router)
 app.include_router(users.router)
+app.include_router(loan_plans.router)
 app.include_router(loans.router)
+
 
 
 # .\fastapi\Scripts\activate
