@@ -19,7 +19,17 @@ class Signup(BaseModel):
 class ResetPassword(BaseModel):
     phone_number: str
     new_password: str
-    
+
+
+# RESET PASSWORD  
+class ChangeRole(BaseModel):
+    phone_number: str
+    role: str
+
+# TOGGLE USER STATUS
+class ToggleUserStatus(BaseModel):
+    phone_number: str
+    is_active: bool
 
 # USER MODEL
 class UserModel(BaseModel):

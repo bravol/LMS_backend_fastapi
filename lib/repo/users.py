@@ -2,9 +2,9 @@ from datetime import timedelta,datetime
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from lib.repo import auth
-from lib.database.tables import User
+from lib.database.tables import User,UserRolesEnum
 from lib.utils.helpers import formatPhoneNumber
-from lib.py_models.users import Login,Signup,UserModel,ChangePassword,ResetPassword,UserUpdate
+from lib.py_models.users import Login,Signup,UserModel,ChangePassword,ResetPassword,UserUpdate, ChangeRole,ToggleUserStatus
 
 # LOGIN USER
 def login_user(db:Session,data:Login):
@@ -37,7 +37,7 @@ def signup_user(db:Session,data:Signup):
         return {"message":"User created Successfully","status":200}
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to create User:{e}")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"Failed to create User:{e}")
 
 # GET USER DATA
 def get_user_data( db: Session,user:UserModel,phone_number: str):
@@ -50,7 +50,7 @@ def get_user_data( db: Session,user:UserModel,phone_number: str):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
         return user_db
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error retrieving user data: {e}")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"Error retrieving user data: {e}")
 
 
 # CHANGE PASSWORD
@@ -73,7 +73,7 @@ def changePassword(db: Session, user:UserModel, data:ChangePassword):
         return {"message": "Password changed successfully", "status": 200}
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=400, detail=f"Could not change password {e}")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Could not change password {e}")
     
 # RESET PASSWORD
 def reset_password(db: Session, data:ResetPassword):
@@ -94,17 +94,17 @@ def reset_password(db: Session, data:ResetPassword):
         return {"message": "Password reset successfully", "status": 200}
             
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Password could not be reset {e}")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Password could not be reset {e}")
 
 
 # GETTING USERS
 def get_users(db: Session,user:UserModel, skip: int, limit: int):
-    if not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication Failed")
+    if user.role != UserRolesEnum.admin:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="You are not an admin to access this data")
     try:
         return db.query(User).offset(skip).limit(limit).all()
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"ERROR GETTING users: {e}")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"ERROR GETTING users: {e}")
     
 
 # UPDATE USER
@@ -121,12 +121,12 @@ def update_user(db: Session, user:UserModel, phone_number: str, data: UserUpdate
         db.commit()
         return {"message": "User updated successfully", "status": 200}
     except Exception as e:
-        raise HTTPException(status_code=400, detail="Could not update user")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Could not update user")
     
 
-# delete user
+# DELETE USER
 def delete_user(db: Session, user:UserModel, phone_number: str):
-    if not user:
+    if user.role != UserRolesEnum.admin:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="You are not an admin to delete this user")
     try:
         phoneNumber=formatPhoneNumber(phone_number)
@@ -137,4 +137,46 @@ def delete_user(db: Session, user:UserModel, phone_number: str):
         return {"message": "User deleted successfully", "status": 200}
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=f"ERROR IN DELETING USER: {e}")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"ERROR IN DELETING USER: {e}")
+    
+# CHANGING USER ROLE
+def change_user_role(db:Session, user:UserModel, data:ChangeRole):
+    if user.role != UserRolesEnum.admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,detail="You do not have permission to change user roles.")
+
+    try:
+        phone_number = formatPhoneNumber(data.phone_number)
+        user_db = db.query(User).filter(User.phone_number == phone_number).first()
+
+        if not user_db:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="User not found.")
+
+        user_db.role = data.role
+        db.commit()
+        return {"message": "User role changed successfully","status": 200}
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,detail=f"Error changing user role: {str(e)}")
+    
+# TOGGLE USER STATUS
+def toggle_user_status(db:Session,user:UserModel,data:ToggleUserStatus):
+    if user.role != UserRolesEnum.admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,detail="Only admins can enable or disable users.")
+
+    try:
+        phone_number = formatPhoneNumber(data.phone_number)
+        user_db = db.query(User).filter(User.phone_number == phone_number).first()
+
+        if not user_db:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="User not found.")
+
+        user_db.is_active = data.is_active
+        db.commit()
+
+        action = "enabled" if data.is_active else "disabled"
+        return {"message": f"User has been successfully {action}.","status": 200}
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,detail=f"Error updating user status: {e}")

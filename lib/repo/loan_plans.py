@@ -1,7 +1,7 @@
 from datetime import datetime
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
-from lib.database.tables import LoanPlan
+from lib.database.tables import LoanPlan,UserRolesEnum
 from lib.py_models.loans import LoanPlanCreate, LoanPlanUpdate
 from lib.py_models.users import UserModel
 from lib.utils.helpers import tz
@@ -27,8 +27,8 @@ def getLoanPlan(db: Session, user: UserModel, plan_id: str):
 
 # UPDATE LOAN PLAN
 def updateLoanPlan(db: Session, user: UserModel, plan_id: str, loan_plan_update: LoanPlanUpdate):
-    if not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication Failed")
+    if user.role != UserRolesEnum.admin:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="You are not an admin to update the loan plan")
 
     loan_plan = db.query(LoanPlan).filter(LoanPlan.id == plan_id).first()
     if loan_plan is None:
@@ -51,8 +51,8 @@ def updateLoanPlan(db: Session, user: UserModel, plan_id: str, loan_plan_update:
 
 # CREATING LOAN PLAN
 def createLoanPlan(db: Session, user: UserModel, data: LoanPlanCreate):
-    if not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication Failed")
+    if user.role != UserRolesEnum.admin:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="You are not an admin to create loan plan")
 
     new_plan = LoanPlan(**data.model_dump())
     try:
@@ -66,8 +66,8 @@ def createLoanPlan(db: Session, user: UserModel, data: LoanPlanCreate):
 
 # DELETE LOAN PLAN
 def deleteLoanPlan(db: Session, user: UserModel, plan_id: str):
-    if not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication Failed")
+    if user.role != UserRolesEnum.admin:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="You are not an admin to delete loan plan")
     loan_plan = db.query(LoanPlan).filter(LoanPlan.id == plan_id).first()
     if not loan_plan:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Loan plan not found")

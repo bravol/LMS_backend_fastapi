@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from fastapi import HTTPException,status
 from lib.py_models.loans import LoanCreate, LoanRepay
 from lib.py_models.users import UserModel
-from lib.database.tables import Loan, LoanStatusEnum, LoanPlan,User, Transaction, TransactionStatusEnum,TransactionTypeEnum,Overpayment
+from lib.database.tables import Loan, LoanStatusEnum, LoanPlan,User, Transaction, TransactionStatusEnum,TransactionTypeEnum,Overpayment, UserRolesEnum
 from lib.utils.helpers import formatPhoneNumber, identifyProvider
 from datetime import datetime, timedelta
 
@@ -144,12 +144,10 @@ def repayLoan(db: Session, user: UserModel, data: LoanRepay):
 
 
 
-
-
 # GETTING LOANS
 def get_loans(db: Session,user:UserModel, skip: int, limit: int):
-    if not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication Failed")
+    if user.role != UserRolesEnum.admin:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="You are not an admin to access this data")
     try:
         return db.query(Loan).offset(skip).limit(limit).all()
     except Exception as e:
@@ -177,8 +175,8 @@ def get_loan_details(db:Session,user:UserModel,loan_id:str):
 
 # UPDATING LOAN
 def updateLoan(db: Session, user:UserModel,loan_id: str, updates: dict):
-    if not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication Failed")
+    if user.role != UserRolesEnum.admin:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="You are not an admin to update the loan")
     try:
         loan = db.query(Loan).filter(Loan.id == loan_id).first()
         if not loan:
@@ -197,8 +195,8 @@ def updateLoan(db: Session, user:UserModel,loan_id: str, updates: dict):
 
     # GET UNPAID LOANS
 def getUnpaidLoans(db: Session, user:UserModel):
-    if not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication Failed")
+    if user.role != UserRolesEnum.admin:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="You are not an admin to access this data")
     try:
         return db.query(Loan).filter(Loan.status.in_([LoanStatusEnum.approved, LoanStatusEnum.overdue, LoanStatusEnum.defaulted])).all()
     except Exception as e:

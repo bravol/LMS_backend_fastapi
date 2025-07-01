@@ -2,14 +2,14 @@ from sqlalchemy.orm import Session
 from starlette import status
 from lib.py_models.users import UserModel
 from fastapi import HTTPException
-from lib.database.tables import Overpayment
+from lib.database.tables import Overpayment,UserRolesEnum
 from lib.utils.helpers import formatPhoneNumber
 
 
 # GETTING ALL THE OVER PAYMENTS
 def getOverpayments(db: Session, user: UserModel, skip: int, limit: int):
-    if not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Authentication Failed')
+    if user.role != UserRolesEnum.admin:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='You are not an admin to access this data')
     try:
         return db.query(Overpayment).offset(skip).limit(limit).all()
     except Exception as e:

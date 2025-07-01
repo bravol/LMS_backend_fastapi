@@ -1,16 +1,16 @@
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 from starlette import status
-from lib.py_models.transaction import TransactionUpdate, TransactionCreate
+from lib.py_models.transaction import TransactionUpdate
 from lib.py_models.users import UserModel
-from lib.database.tables import Transaction, TransactionStatusEnum,Loan, TransactionTypeEnum
-from lib.utils.helpers import formatPhoneNumber, identifyProvider
+from lib.database.tables import Transaction,UserRolesEnum
+from lib.utils.helpers import formatPhoneNumber
 
 
 # GET TRANSACTIONS
 def getTransactions(db: Session, user: UserModel, skip: int, limit: int):
-    if not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Authentication Failed')
+    if user.role != UserRolesEnum.admin:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='You are not an admin to access this data')
     try:
         return db.query(Transaction).offset(skip).limit(limit).all()
     except Exception as e:
@@ -29,8 +29,8 @@ def getTransaction(db: Session, user:UserModel, transaction_id: str):
 
 # UPDATE TRANSACTION
 def updateTransaction(db: Session, user:UserModel, transaction_id: str, transaction: TransactionUpdate):
-    if not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication Failed")
+    if user.role != UserRolesEnum.admin:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="You are not an admin to update this transaction")
     try:
         db_transaction = db.query(Transaction).filter(Transaction.id == transaction_id).first()
         if db_transaction:
@@ -46,8 +46,8 @@ def updateTransaction(db: Session, user:UserModel, transaction_id: str, transact
 
 # DELETE TRANSACTION
 def deleteTransaction(db: Session, user:UserModel, transaction_id: str):
-    if not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication Failed")
+    if user.role != UserRolesEnum.admin:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="You are not an admin to delete this transaction")
     try:
         db_transaction = db.query(Transaction).filter(Transaction.id == transaction_id).first()
         if db_transaction:

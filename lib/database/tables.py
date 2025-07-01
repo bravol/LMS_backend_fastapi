@@ -25,6 +25,12 @@ class TransactionTypeEnum(enum.Enum):
     request_loan = "request Loan"
     repay_loan = "repay loan"
 
+class UserRolesEnum(enum.Enum):
+    admin='admin'
+    user='user'
+    manager='manager'
+    support='support'
+
     
 # USERS TABLE
 class User(Base, TimestampMixin):
