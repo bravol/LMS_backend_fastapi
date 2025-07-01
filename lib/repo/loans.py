@@ -2,8 +2,8 @@ from sqlalchemy.orm import Session
 from fastapi import HTTPException,status
 from lib.py_models.loans import LoanCreate, LoanRepay
 from lib.py_models.users import UserModel
-from lib.database.tables import Loan, LoanStatusEnum, LoanPlan,User
-from lib.utils.helpers import formatPhoneNumber
+from lib.database.tables import Loan, LoanStatusEnum, LoanPlan,User, Transaction, TransactionStatusEnum,TransactionTypeEnum
+from lib.utils.helpers import formatPhoneNumber, identifyProvider
 from datetime import datetime, timedelta
 
 # A METHOD TO REQUEST LOAN
@@ -23,6 +23,7 @@ def requestLoan(db: Session, user: UserModel, data: LoanCreate):
 
     charges = data.amount * 0.01
     paybackAmount = data.amount + charges
+    payment_method = identifyProvider(user.phone_number)
     loan_plan = db.query(LoanPlan).filter(LoanPlan.id == data.loan_plan_id).first()
 
     if not loan_plan:
@@ -39,14 +40,29 @@ def requestLoan(db: Session, user: UserModel, data: LoanCreate):
         due_date=due_date,
         status=LoanStatusEnum.approved
     )
+    db.add(new_loan)
+    db.flush()  #This gets the ID from the database
+    db.refresh(new_loan)
+
+
+    new_transaction=Transaction(
+        phone_number=user.phone_number,
+        loan_id= new_loan.id,
+        amount=data.amount,
+        charges= charges,
+        status= TransactionStatusEnum.successful,
+        payment_method=payment_method,
+        transaction_type=TransactionTypeEnum.request_loan,
+    )
+
+
    # update the user loan balance
     logged_in_user= db.query(User).filter(User.phone_number==user.phone_number).first()
-    logged_in_user.loan_balance += paybackAmount
+    logged_in_user.loan_balance = (logged_in_user.loan_balance or 0) + paybackAmount
 
-
-    db.add(new_loan)
+    db.add(new_transaction)
     db.commit()
-    db.refresh(new_loan)
+    db.refresh(new_transaction)
     db.refresh(logged_in_user)
     return {"message": "Loan request submitted successfully", "status": 200}
 
@@ -87,8 +103,22 @@ def repayLoan(db: Session, user: UserModel, data:LoanRepay):
     logged_in_user= db.query(User).filter(User.phone_number == user.phone_number).first()
     logged_in_user.loan_balance = sum(loan.loan_balance for loan in active_loans)
 
+    #Create repayment transaction
+    payment_method = identifyProvider(user.phone_number)
+    repayment_transaction = Transaction(
+        phone_number=user.phone_number,
+        loan_id=loan.id,
+        amount=data.repayment_amount,
+        charges=0,
+        status=TransactionStatusEnum.successful,
+        payment_method=payment_method,
+        transaction_type=TransactionTypeEnum.repay_loan,
+    )
+    
+    db.add(repayment_transaction)
     db.commit()
     db.refresh(loan)
+    db.refresh(repayment_transaction)
     db.refresh(logged_in_user)
 
     return {"message": f"Repayment of {data.repayment_amount} received successfully.","status": 200}

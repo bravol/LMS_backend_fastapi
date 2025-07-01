@@ -21,7 +21,9 @@ class TransactionStatusEnum(enum.Enum):
     pending = "pending"
     successful = "successful"
     failed = "failed"
-
+class TransactionTypeEnum(enum.Enum):
+    request_loan = "request Loan"
+    repay_loan = "repay loan"
     
 # USERS TABLE
 class User(Base, TimestampMixin):
@@ -73,9 +75,8 @@ class Transaction(Base, TimestampMixin):
     __tablename__ = "transactions"
 
     id = Column(String(50),primary_key=True, default=lambda: uuid4().hex)
-    user_phone = Column(String(30), ForeignKey("users.phone_number", ondelete='SET NULL'), nullable=True, index=True)
-    phone_number = Column(String(30), nullable=True)
-    loan_id = Column(String(30), ForeignKey("loans.id", ondelete='SET NULL'), nullable=True, index=True)
+    phone_number = Column(String(30), ForeignKey("users.phone_number", ondelete='SET NULL'), nullable=True, index=True)
+    loan_id = Column(String(50), ForeignKey("loans.id", ondelete='SET NULL'), nullable=True, index=True)
     amount = Column(Float, nullable=False)
     charges = Column(Float, nullable=True)
     status = Column(SQLEnum(TransactionStatusEnum), nullable=False, default=TransactionStatusEnum.pending)

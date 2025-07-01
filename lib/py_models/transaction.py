@@ -38,7 +38,7 @@ class TransactionModel(BaseModel):
     charges:float
     status: str
     payment_method: Optional[str] 
-    narration: Optional[str]
+    transaction_type: Optional[str]
     created_at: datetime
     updated_at: datetime
 
