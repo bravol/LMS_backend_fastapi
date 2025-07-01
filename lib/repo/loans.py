@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from fastapi import HTTPException,status
 from lib.py_models.loans import LoanCreate, LoanRepay
 from lib.py_models.users import UserModel
-from lib.database.tables import Loan, LoanStatusEnum, LoanPlan
+from lib.database.tables import Loan, LoanStatusEnum, LoanPlan,User
 from lib.utils.helpers import formatPhoneNumber
 from datetime import datetime, timedelta
 
@@ -40,12 +40,14 @@ def requestLoan(db: Session, user: UserModel, data: LoanCreate):
         status=LoanStatusEnum.approved
     )
    # update the user loan balance
-    user.loan_balance += paybackAmount
+    logged_in_user= db.query(User).filter(User.phone_number==user.phone_number).first()
+    logged_in_user.loan_balance += paybackAmount
+
 
     db.add(new_loan)
     db.commit()
     db.refresh(new_loan)
-    db.refresh(user)
+    db.refresh(logged_in_user)
     return {"message": "Loan request submitted successfully", "status": 200}
 
 
@@ -82,7 +84,8 @@ def repayLoan(db: Session, user: UserModel, data:LoanRepay):
         user.loan_limit += 5000
 
     active_loans = db.query(Loan).filter(Loan.phone_number == user.phone_number,Loan.is_cleared == False).all()
-    user.loan_balance = sum(loan.loan_balance for loan in active_loans)
+    logged_in_user= db.query(User).filter(User.phone_number == user.phone_number).first()
+    logged_in_user.loan_balance = sum(loan.loan_balance for loan in active_loans)
 
     db.commit()
     db.refresh(loan)
