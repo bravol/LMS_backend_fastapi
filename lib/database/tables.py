@@ -82,7 +82,7 @@ class Transaction(Base, TimestampMixin):
     charges = Column(Float, nullable=True)
     status = Column(SQLEnum(TransactionStatusEnum), nullable=False, default=TransactionStatusEnum.pending)
     payment_method = Column(String(100), nullable=True)
-    narration = Column(String(1000), nullable=True)
+    transaction_type = Column(String(50), nullable=True)
     
     user = relationship("User", back_populates="transactions", passive_deletes=True)
     loan = relationship("Loan", back_populates="transactions", passive_deletes=True)
