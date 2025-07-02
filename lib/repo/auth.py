@@ -3,7 +3,7 @@ from lib.utils import helpers
 from passlib.context import CryptContext
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
-from lib.database.tables import User
+from lib.database.tables import User,UserRolesEnum
 from lib.py_models.users import Login,UserModel
 from datetime import timedelta, datetime, timezone
 from fastapi import HTTPException, status, Depends
@@ -28,15 +28,18 @@ def authenticate_user(db:Session,user:Login):
     if not verify_user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="Invalid phone number or password")
     return user_db
-# cleanly returns a validated Pydantic model
 
 # CREATING ACCESS TOKEN
-def create_access_token(user:UserModel, expires_delta:timedelta):
-    phone_number=helpers.formatPhoneNumber(user.phone_number)
-    encode ={"phone_number":phone_number,"role":user.role}
-    expires =datetime.now(timezone.utc) + expires_delta
-    encode.update({'exp':expires})
+def create_access_token(user: UserModel, expires_delta: timedelta):
+    phone_number = helpers.formatPhoneNumber(user.phone_number)
+    encode = {
+        "phone_number": phone_number,
+        "role": user.role.value if user.role else None  # safer than str(user.role)
+    }
+    expires = datetime.now(timezone.utc) + expires_delta
+    encode.update({'exp': expires})
     return jwt.encode(encode, SECRET_KEY, algorithm=ALGORITHM)
+
 
 # DECRYPT AND VERIFY THE TOKEN
 def authenticate_request(credentials: HTTPAuthorizationCredentials=Depends(security)):
@@ -54,7 +57,7 @@ def authenticate_request(credentials: HTTPAuthorizationCredentials=Depends(secur
 
             if phone_number is None or role is None:
                 raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Access denied,  Could not validaate the user')
-            return UserModel(phone_number=phone_number, role=role)
+            return UserModel(phone_number=phone_number, role=UserRolesEnum(role))
     except JWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Access denied, Invalid token received")
 

@@ -1,7 +1,6 @@
 from typing import Annotated
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-
 from lib.database.database import SessionLocal
 from lib.py_models.users import UserModel
 from lib.py_models.loans import LoanCreate, LoanRepay

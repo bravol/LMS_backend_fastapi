@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional
+from lib.database.tables import UserRolesEnum
 
 
 class Login(BaseModel):
@@ -44,7 +45,7 @@ class UserModel(BaseModel):
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     dob: Optional[datetime] = None
-    role: Optional[str] = None
+    role: Optional[UserRolesEnum] = None
     gender: Optional[str] = None
     password: Optional[str] = None
     is_active: Optional[bool] = None

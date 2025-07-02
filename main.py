@@ -1,6 +1,6 @@
 from lib.database import tables,database
 from fastapi import FastAPI
-from lib.routers import transactions, users,auth, loans, loan_plans,over_payments
+from lib.routers import transactions, users,auth, loans, loan_plans,over_payments,faqs
 
 app = FastAPI()
 
@@ -18,6 +18,7 @@ app.include_router(loan_plans.router)
 app.include_router(loans.router)
 app.include_router(transactions.router)
 app.include_router(over_payments.router)
+app.include_router(faqs.router)
 
 
 
@@ -39,3 +40,13 @@ app.include_router(over_payments.router)
 # Generate migration:	alembic revision --autogenerate -m "add amount_paid"
 # Apply migration:	alembic upgrade head
 # reverse schema changes: alembic downgrade -1
+
+
+# alembic stamp head
+# alembic revision --autogenerate -m "initial"
+# alembic upgrade head
+
+# SHOW CREATE TABLE transactions\G
+# ALTER TABLE transactions DROP FOREIGN KEY fk_transactions_user_phone;
+# ALTER TABLE transactions DROP INDEX ix_transactions_user_phone;
+

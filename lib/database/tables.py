@@ -45,7 +45,7 @@ class User(Base, TimestampMixin):
     loan_balance = Column(Float, nullable=True, default=0)
     loan_limit = Column(Float, nullable=True, default=0)
     verified = Column(Boolean, nullable=True, default=False)
-    role = Column(String(100), nullable=False, default="user")
+    role = Column(SQLEnum(UserRolesEnum), nullable=False, default=UserRolesEnum.user)
     is_active = Column(Boolean,nullable=False, default=True)
     gender = Column(String(100), nullable=True)
     dob = Column(Date, nullable=True)
